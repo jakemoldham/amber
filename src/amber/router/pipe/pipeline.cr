@@ -6,6 +6,7 @@ module Amber
       getter pipeline
       getter valve : Symbol
       getter router
+      getter pipes
 
       def self.instance
         @@instance ||= new
@@ -16,6 +17,7 @@ module Amber
         @valve = :web
         @pipeline = {} of Symbol => Array(HTTP::Handler)
         @pipeline[@valve] = [] of HTTP::Handler
+        @pipes = Hash(Symbol, (HTTP::Handler | Nil | (HTTP::Server::Context ->))).new(nil)
       end
 
       def call(context : HTTP::Server::Context)
@@ -24,8 +26,9 @@ module Amber
         else
           raise Exceptions::RouteNotFound.new(context.request) if validate_route(context)
           route = context.route.payload
-          pipe = proccess_pipeline(@pipeline[route.valve], ->(context : HTTP::Server::Context) { context })
-          pipe.call(context) if pipe
+          valve = route.valve
+          pipes[valve] ||= proccess_pipeline(@pipeline[route.valve], ->(context : HTTP::Server::Context) { context })
+          pipes[valve].not_nil!.call(context) if pipes[valve]
           context.response.print(route.call(context))
           context
         end
