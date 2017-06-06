@@ -2,12 +2,22 @@ module Amber
   module Exceptions
     class Base < Exception
       getter status_code : Int32 = 500
- 
+
       def set_response(response)
         response.headers["Content-Type"] = "text/plain"
         response.print message
         response.status_code = status_code
       end
+    end
+
+    # Raised when storing more than 4K of session data.
+    class CookieOverflow < Base
+    end
+
+    class InvalidSignature < Base
+    end
+
+    class InvalidMessage < Base
     end
 
     class DuplicateRouteError < Base
